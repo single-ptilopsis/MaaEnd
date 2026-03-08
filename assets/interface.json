@@ -101,6 +101,7 @@
         "tasks/DailyRewards.json",
         "tasks/SellProduct.json",
         "tasks/AutoResell.json",
+        "tasks/AutoStockpile.json",
         "tasks/AutoEssence.json",
         "tasks/EssenceFilter.json",
         "tasks/CreditShopping.json",

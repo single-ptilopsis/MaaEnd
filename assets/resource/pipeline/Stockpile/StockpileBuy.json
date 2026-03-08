@@ -1,0 +1,590 @@
+{
+    "StockpileSelectProductRow1Col1": {
+        "desc": "选择商品，第一行第一列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            72,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col1"
+        ]
+    },
+    "StockpileSelectProductRow1Col2": {
+        "desc": "选择商品，第一行第二列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            223,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col2"
+        ]
+    },
+    "StockpileSelectProductRow1Col3": {
+        "desc": "选择商品，第一行第三列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            374,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col3"
+        ]
+    },
+    "StockpileSelectProductRow1Col4": {
+        "desc": "选择商品，第一行第四列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            525,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col4"
+        ]
+    },
+    "StockpileSelectProductRow1Col5": {
+        "desc": "选择商品，第一行第五列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            676,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col5"
+        ]
+    },
+    "StockpileSelectProductRow1Col6": {
+        "desc": "选择商品，第一行第六列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            827,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col6"
+        ]
+    },
+    "StockpileSelectProductRow1Col7": {
+        "desc": "选择商品，第一行第七列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            978,
+            354,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow1Col7"
+        ]
+    },
+    "StockpileSelectProductRow2Col1": {
+        "desc": "选择商品，第二行第一列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            72,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col1"
+        ]
+    },
+    "StockpileSelectProductRow2Col2": {
+        "desc": "选择商品，第二行第二列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            223,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col2"
+        ]
+    },
+    "StockpileSelectProductRow2Col3": {
+        "desc": "选择商品，第二行第三列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            374,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col3"
+        ]
+    },
+    "StockpileSelectProductRow2Col4": {
+        "desc": "选择商品，第二行第四列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            525,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col4"
+        ]
+    },
+    "StockpileSelectProductRow2Col5": {
+        "desc": "选择商品，第二行第五列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            676,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col5"
+        ]
+    },
+    "StockpileSelectProductRow2Col6": {
+        "desc": "选择商品，第二行第六列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            827,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col6"
+        ]
+    },
+    "StockpileSelectProductRow2Col7": {
+        "desc": "选择商品，第二行第七列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            978,
+            484,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow2Col7"
+        ]
+    },
+    "StockpileSelectProductRow3Col1": {
+        "desc": "选择商品，第三行第一列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            72,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col1"
+        ]
+    },
+    "StockpileSelectProductRow3Col2": {
+        "desc": "选择商品，第三行第二列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            223,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col2"
+        ]
+    },
+    "StockpileSelectProductRow3Col3": {
+        "desc": "选择商品，第三行第三列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            374,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col3"
+        ]
+    },
+    "StockpileSelectProductRow3Col4": {
+        "desc": "选择商品，第三行第四列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            525,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col4"
+        ]
+    },
+    "StockpileSelectProductRow3Col5": {
+        "desc": "选择商品，第三行第五列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            676,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col5"
+        ]
+    },
+    "StockpileSelectProductRow3Col6": {
+        "desc": "选择商品，第三行第六列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            827,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col6"
+        ]
+    },
+    "StockpileSelectProductRow3Col7": {
+        "desc": "选择商品，第三行第七列",
+        "recognition": "TemplateMatch",
+        "roi": [
+            0,
+            209,
+            128,
+            126
+        ],
+        "template": "Resell/inUnstableStore.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "target": [
+            978,
+            571,
+            141,
+            31
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileSelectProductConfirm",
+            "StockpileSelectProductRow3Col7"
+        ]
+    },
+    "StockpileSelectProductConfirm": {
+        "desc": "在购买弹窗中拖动滑条至最大并准备购买",
+        "recognition": "TemplateMatch",
+        "roi": [
+            1010,
+            525,
+            120,
+            122
+        ],
+        "template": "Resell/Confirm.png",
+        "threshold": 0.8,
+        "action": "Swipe",
+        "begin": [
+            530,
+            500
+        ],
+        "end": [
+            700,
+            500
+        ],
+        "post_delay": 500,
+        "next": [
+            "StockpileBuy"
+        ]
+    },
+    "StockpileBuy": {
+        "desc": "点击购买按钮",
+        "recognition": "TemplateMatch",
+        "roi": [
+            1010,
+            525,
+            120,
+            122
+        ],
+        "template": "Resell/Confirm.png",
+        "threshold": 0.8,
+        "pre_delay": 500,
+        "action": "Click",
+        "target": [
+            1058,
+            574,
+            23,
+            22
+        ],
+        "post_delay": 2000,
+        "next": [
+            "StockpileReturnToStore",
+            "StockpileBuy",
+            "StockpileMain"
+        ]
+    },
+    "StockpileReturnToStore": {
+        "desc": "购买成功后返回商店页面",
+        "recognition": "TemplateMatch",
+        "roi": [
+            577,
+            601,
+            124,
+            119
+        ],
+        "template": "Resell/success.png",
+        "threshold": 0.8,
+        "action": "Click",
+        "post_delay": 500,
+        "next": [
+            "StockpileScrollToTop"
+        ]
+    },
+    "StockpileScrollToTop": {
+        "desc": "滚动到顶部，重新扫描商品",
+        "recognition": "DirectHit",
+        "action": "Scroll",
+        "target": [
+            640,
+            360
+        ],
+        "dy": 240,
+        "post_wait_freezes": 300,
+        "next": [
+            "StockpileCheckSoldoutInHeader",
+            "StockpileInElasticStore",
+            "StockpileReturnToStore"
+        ]
+    }
+}

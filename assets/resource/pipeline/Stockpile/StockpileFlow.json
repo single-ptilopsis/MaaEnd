@@ -1,0 +1,66 @@
+{
+    "StockpileCheckQuota": {
+        "desc": "检查配额溢出状态",
+        "recognition": "Custom",
+        "custom_recognition": "StockpileCheckQuotaRecognition",
+        "action": "Custom",
+        "custom_action": "StockpileCheckQuotaAction",
+        "next": [
+            "StockpileScan"
+        ]
+    },
+    "StockpileDecide": {
+        "desc": "根据价格差值决策购买或切换地区",
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "StockpileDecideAction",
+        "next": []
+    },
+    "StockpileScan": {
+        "desc": "扫描入口，解析 row/col 并跳转到价格识别",
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "StockpileScanAction",
+        "custom_action_param": {
+            "row": 1,
+            "col": 1
+        },
+        "next": [
+            "StockpileScanPrice",
+            "StockpileScanSkipEmpty"
+        ]
+    },
+    "StockpileScanPrice": {
+        "desc": "识别商品价格区域（any_of 由 StockpileScanAction 动态写入）",
+        "recognition": "Or",
+        "any_of": [
+            "StockpileROIProductRow1Col1Price"
+        ],
+        "action": "Custom",
+        "custom_action": "StockpileScanPriceAction",
+        "next": [
+            "StockpileScanNext"
+        ]
+    },
+    "StockpileScanSkipEmpty": {
+        "desc": "当前位置无商品时跳过",
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "StockpileScanSkipEmptyAction",
+        "next": []
+    },
+    "StockpileScanNext": {
+        "desc": "跳转到下一格或进入决策",
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "StockpileScanNextAction",
+        "next": []
+    },
+    "StockpileFinish": {
+        "desc": "囤货任务完成",
+        "recognition": "DirectHit",
+        "action": "Custom",
+        "custom_action": "StockpileFinishAction",
+        "next": []
+    }
+}

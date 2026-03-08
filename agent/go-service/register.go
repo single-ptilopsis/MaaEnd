@@ -14,6 +14,7 @@ import (
 	maptracker "github.com/MaaXYZ/MaaEnd/agent/go-service/map-tracker"
 	puzzle "github.com/MaaXYZ/MaaEnd/agent/go-service/puzzle-solver"
 	"github.com/MaaXYZ/MaaEnd/agent/go-service/resell"
+	"github.com/MaaXYZ/MaaEnd/agent/go-service/stockpile"
 	"github.com/MaaXYZ/MaaEnd/agent/go-service/subtask"
 	"github.com/rs/zerolog/log"
 )
@@ -31,6 +32,7 @@ func registerAll() {
 	blueprintimport.Register()
 	charactercontroller.Register()
 	resell.Register()
+	stockpile.Register()
 	puzzle.Register()
 	essencefilter.Register()
 	dailyrewards.Register()

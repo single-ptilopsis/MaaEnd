@@ -1,0 +1,180 @@
+{
+    "task": [
+        {
+            "name": "AutoStockpile",
+            "label": "$task.AutoStockpile.label",
+            "entry": "StockpileMain",
+            "description": "$task.AutoStockpile.description",
+            "controller": [
+                "Win32-Window",
+                "Win32-Window-Background",
+                "Win32-Front"
+            ],
+            "option": [
+                "StockpileStrategy",
+                "StockpileOverflowBuy",
+                "StockpileSundayBuyAll"
+            ]
+        }
+    ],
+    "option": {
+        "StockpileStrategy": {
+            "type": "select",
+            "label": "$option.StockpileStrategy.label",
+            "default_case": "Recommend",
+            "cases": [
+                {
+                    "name": "Recommend",
+                    "label": "$option.StockpileStrategy.cases.Recommend.label",
+                    "description": "$option.StockpileStrategy.cases.Recommend.description",
+                    "pipeline_override": {
+                        "StockpileInit": {
+                            "action": {
+                                "param": {
+                                    "custom_action_param": {
+                                        "Strategy": "Recommend",
+                                        "ValleyModerate": 1000,
+                                        "ValleyLarge": 1400,
+                                        "ValleyExtreme": 1700,
+                                        "WulingModerate": 1700
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Strict",
+                    "label": "$option.StockpileStrategy.cases.Strict.label",
+                    "description": "$option.StockpileStrategy.cases.Strict.description",
+                    "pipeline_override": {
+                        "StockpileInit": {
+                            "action": {
+                                "param": {
+                                    "custom_action_param": {
+                                        "Strategy": "Strict",
+                                        "ValleyModerate": 800,
+                                        "ValleyLarge": 1200,
+                                        "ValleyExtreme": 1500,
+                                        "WulingModerate": 1500
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Custom",
+                    "label": "$option.StockpileStrategy.cases.Custom.label",
+                    "description": "$option.StockpileStrategy.cases.Custom.description",
+                    "option": [
+                        "StockpileCustomPrices"
+                    ]
+                }
+            ]
+        },
+        "StockpileCustomPrices": {
+            "type": "input",
+            "label": "$option.StockpileCustomPrices.label",
+            "inputs": [
+                {
+                    "name": "ValleyModerate",
+                    "label": "$option.StockpileCustomPrices.inputs.ValleyModerate.label",
+                    "description": "$option.StockpileCustomPrices.inputs.ValleyModerate.description",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1000"
+                },
+                {
+                    "name": "ValleyLarge",
+                    "label": "$option.StockpileCustomPrices.inputs.ValleyLarge.label",
+                    "description": "$option.StockpileCustomPrices.inputs.ValleyLarge.description",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1400"
+                },
+                {
+                    "name": "ValleyExtreme",
+                    "label": "$option.StockpileCustomPrices.inputs.ValleyExtreme.label",
+                    "description": "$option.StockpileCustomPrices.inputs.ValleyExtreme.description",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1700"
+                },
+                {
+                    "name": "WulingModerate",
+                    "label": "$option.StockpileCustomPrices.inputs.WulingModerate.label",
+                    "description": "$option.StockpileCustomPrices.inputs.WulingModerate.description",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1700"
+                }
+            ],
+            "pipeline_override": {
+                "StockpileInit": {
+                    "action": {
+                        "param": {
+                            "custom_action_param": {
+                                "Strategy": "Custom",
+                                "ValleyModerate": "{ValleyModerate}",
+                                "ValleyLarge": "{ValleyLarge}",
+                                "ValleyExtreme": "{ValleyExtreme}",
+                                "WulingModerate": "{WulingModerate}"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "StockpileOverflowBuy": {
+            "type": "switch",
+            "label": "$option.StockpileOverflowBuy.label",
+            "description": "$option.StockpileOverflowBuy.description",
+            "default_case": "No",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "StockpileInit": {
+                            "action": {
+                                "param": {
+                                    "custom_action_param": {
+                                        "OverflowBuy": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "No"
+                }
+            ]
+        },
+        "StockpileSundayBuyAll": {
+            "type": "switch",
+            "label": "$option.StockpileSundayBuyAll.label",
+            "description": "$option.StockpileSundayBuyAll.description",
+            "default_case": "No",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "StockpileInit": {
+                            "action": {
+                                "param": {
+                                    "custom_action_param": {
+                                        "SundayBuyAll": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "No"
+                }
+            ]
+        }
+    }
+}

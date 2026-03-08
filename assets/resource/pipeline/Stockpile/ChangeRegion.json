@@ -1,0 +1,130 @@
+{
+    "StockpileChangeRegionPrepare": {
+        "desc": "准备切换地区，关闭所有弹窗返回地区管理",
+        "recognition": "DirectHit",
+        "action": "ClickKey",
+        "key": 27,
+        "post_wait_freezes": 300,
+        "next": [
+            "StockpileChangeNextRegion",
+            "StockpileChangeRegionPrepare"
+        ]
+    },
+    "StockpileChangeNextRegion": {
+        "desc": "切换到下一个地区",
+        "enabled": true,
+        "recognition": "TemplateMatch",
+        "roi": [
+            1139,
+            63,
+            135,
+            127
+        ],
+        "template": "Resell/inManagement.png",
+        "threshold": 0.8,
+        "action": "DoNothing",
+        "next": [
+            "StockpileChangeNextRegionInManagement",
+            "StockpileCheckInWorld1",
+            "StockpileCheckInWorld2",
+            "StockpileEscGoBack"
+        ]
+    },
+    "StockpileCheckInWorld1": {
+        "desc": "检查是否在大世界（四号谷地）",
+        "recognition": "OCR",
+        "roi": [
+            0,
+            655,
+            120,
+            32
+        ],
+        "expected": [
+            "四号谷地",
+            "Valley IV",
+            "Valley"
+        ],
+        "threshold": 0.6,
+        "action": "DoNothing",
+        "next": [
+            "[JumpBack]SceneEnterMenuRegionalDevelopment"
+        ]
+    },
+    "StockpileCheckInWorld2": {
+        "desc": "检查是否在大世界（武陵）",
+        "recognition": "OCR",
+        "roi": [
+            0,
+            655,
+            120,
+            32
+        ],
+        "expected": [
+            "武陵",
+            "Wuling"
+        ],
+        "threshold": 0.6,
+        "action": "DoNothing",
+        "next": [
+            "[JumpBack]SceneEnterMenuRegionalDevelopment"
+        ]
+    },
+    "StockpileEscGoBack": {
+        "desc": "按 Esc 返回上一层",
+        "recognition": "DirectHit",
+        "action": "ClickKey",
+        "key": 27,
+        "post_wait_freezes": 300,
+        "next": [
+            "StockpileChangeNextRegion"
+        ]
+    },
+    "StockpileChangeNextRegionInManagement": {
+        "desc": "已在地区管理页面，根据当前地区切换",
+        "recognition": "OCR",
+        "roi": [
+            25,
+            174,
+            178,
+            48
+        ],
+        "expected": [
+            "四号谷地",
+            "Valley IV",
+            "Valley"
+        ],
+        "threshold": 0.8,
+        "action": "DoNothing",
+        "next": [
+            "StockpileChangeNextRegionToWuling",
+            "StockpileLastAreaFinished"
+        ]
+    },
+    "StockpileChangeNextRegionToWuling": {
+        "desc": "从四号谷地切换到武陵",
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "next": [
+            "[JumpBack]GoToWuling"
+        ]
+    },
+    "StockpileWuling2FourthValley": {
+        "desc": "从武陵切换到四号谷地",
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "next": [
+            "[JumpBack]GoToValleyIV"
+        ]
+    },
+    "StockpileLastAreaFinished": {
+        "desc": "所有地区已完成",
+        "recognition": "DirectHit",
+        "action": "DoNothing",
+        "next": [
+            "StockpileFinish"
+        ],
+        "focus": {
+            "Node.Action.Starting": "✅ 所有地区囤货完成"
+        }
+    }
+}
