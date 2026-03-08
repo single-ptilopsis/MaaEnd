@@ -477,3 +477,4 @@ venv/
 .cache/
 
 tests/MaaEndTesting
+package-lock.json

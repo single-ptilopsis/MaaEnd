@@ -155,13 +155,13 @@ func (r *StockpileCheckQuotaRecognition) Run(ctx *maa.Context, arg *maa.CustomRe
 		}, true
 	}
 
-	x, y, _, b := ocrAndParseQuota(ctx, arg.Img)
-	if x < 0 || y <= 0 || b < 0 {
+	currentQuota, maxQuota, _, nextIncrement := ocrAndParseQuota(ctx, arg.Img)
+	if currentQuota < 0 || maxQuota <= 0 || nextIncrement < 0 {
 		log.Info().
 			Str("component", "Stockpile").
 			Msg("could not parse quota, continuing normally")
 	}
-	result := quotaRecoResult{X: x, Y: y, B: b}
+	result := quotaRecoResult{X: currentQuota, Y: maxQuota, B: nextIncrement}
 	detailJSON, _ := json.Marshal(result)
 	return &maa.CustomRecognitionResult{
 		Box:    arg.Roi,

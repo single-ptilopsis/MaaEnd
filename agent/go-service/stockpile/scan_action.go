@@ -280,8 +280,9 @@ func extractOCRFromDetailJson(detailJson string) (text string, boxX, boxY, boxW,
 
 // ocrAndParseQuota performs OCR on the quota region and parses
 // current/max quota and the upcoming increment.
-func ocrAndParseQuota(ctx *maa.Context, img image.Image) (x, y, hoursLater, b int) {
-	x, y, hoursLater, b = -1, -1, -1, -1
+// Returns: currentQuota, maxQuota, hoursUntilNext (0 for minutes), nextIncrement.
+func ocrAndParseQuota(ctx *maa.Context, img image.Image) (currentQuota, maxQuota, hoursUntilNext, nextIncrement int) {
+	currentQuota, maxQuota, hoursUntilNext, nextIncrement = -1, -1, -1, -1
 
 	detail1, err := ctx.RunRecognition("StockpileROIQuotaCurrent", img, nil)
 	if err != nil {
@@ -299,10 +300,10 @@ func ocrAndParseQuota(ctx *maa.Context, img image.Image) (x, y, hoursLater, b in
 		parts := strings.Split(text, "/")
 		if len(parts) >= 2 {
 			if val, ok := extractNumbersFromText(parts[0]); ok {
-				x = val
+				currentQuota = val
 			}
 			if val, ok := extractNumbersFromText(parts[1]); ok {
-				y = val
+				maxQuota = val
 			}
 		}
 	}
@@ -317,10 +318,10 @@ func ocrAndParseQuota(ctx *maa.Context, img image.Image) (x, y, hoursLater, b in
 		parts := strings.Split(text, "+")
 		if len(parts) >= 2 {
 			if val, ok := extractNumbersFromText(parts[0]); ok {
-				hoursLater = val
+				hoursUntilNext = val
 			}
 			if val, ok := extractNumbersFromText(parts[1]); ok {
-				b = val
+				nextIncrement = val
 			}
 			return
 		}
@@ -336,9 +337,9 @@ func ocrAndParseQuota(ctx *maa.Context, img image.Image) (x, y, hoursLater, b in
 		parts := strings.Split(text, "+")
 		if len(parts) >= 2 {
 			if val, ok := extractNumbersFromText(parts[1]); ok {
-				b = val
+				nextIncrement = val
 			}
-			hoursLater = 0
+			hoursUntilNext = 0
 			return
 		}
 	}
@@ -353,9 +354,9 @@ func ocrAndParseQuota(ctx *maa.Context, img image.Image) (x, y, hoursLater, b in
 		parts := strings.Split(text, "+")
 		if len(parts) >= 2 {
 			if val, ok := extractNumbersFromText(parts[len(parts)-1]); ok {
-				b = val
+				nextIncrement = val
 			}
-			hoursLater = 0
+			hoursUntilNext = 0
 		}
 	}
 
