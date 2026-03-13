@@ -190,6 +190,8 @@
     "option.DailyTaskCreation.desc": "Automatically perform simple crafting once to earn activity points.",
     "task.AutoResell.label": "💰 Semi-automatic Resell",
     "task.AutoResell.description": "Automatically resell elastic demand supplies by identifying the highest profit goods. You can choose to automatically purchase and sell at friends' ships, or just get purchase recommendations.",
+    "task.AutoStockpile.label": "📦 Auto Stockpile",
+    "task.AutoStockpile.description": "Automatically enter the Regional Development menu, scroll downward, and OCR stockpile-related content. This currently provides only the task skeleton and Go-side OCR reception.",
     "option.AutoBuyAndSell.label": "Auto Buy/Sell",
     "option.AutoBuyAndSell.description": "When enabled, automatically purchases and sells; when disabled, only identifies prices and provides purchase recommendations without actual buying/selling. Note: Auto buy/sell is only available with 'Win32-Front' controller configuration.",
     "option.AutoChangeRegion.label": "Auto Region Switching",

@@ -1,0 +1,24 @@
+{
+    "configs": {
+        "name": "自动囤货(官服-Win32)，测试OCR识别节点",
+        "resource": "官服",
+        "controller": "Win32"
+    },
+    "cases": [
+        {
+            "name": "产品详情页入口识别（简体中文）",
+            "image": "自动囤货/产品详情页_选择购买的物资",
+            "hits": ["AutoStockpileProductPageEntry"]
+        },
+        {
+            "name": "产品详情页入口识别（简体中文变体）",
+            "image": "自动囤货/产品详情页_选择物资",
+            "hits": ["AutoStockpileProductPageEntry"]
+        },
+        {
+            "name": "物资调度主页面（未解锁弹性物资）",
+            "image": "自动囤货/物资调度_主食物资_未解锁弹性",
+            "hits": ["AutoStockpileCheckInStore"]
+        }
+    ]
+}

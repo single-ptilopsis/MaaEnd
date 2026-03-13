@@ -1,0 +1,24 @@
+{
+    "configs": {
+        "name": "自动囤货(官服-Win32)，测试模板识别节点",
+        "resource": "官服",
+        "controller": "Win32"
+    },
+    "cases": [
+        {
+            "name": "地区建设页识别物资调度入口按钮",
+            "image": "自动囤货/地区建设_物资调度按钮",
+            "hits": ["AutoStockpilerEnterStore"]
+        },
+        {
+            "name": "物资调度页识别弹性物资标签",
+            "image": "自动囤货/物资调度_弹性物资标签",
+            "hits": ["AutoStockpileGotoElasticGoods"]
+        },
+        {
+            "name": "物资调度页识别弹性物资标签（已选中状态）",
+            "image": "自动囤货/物资调度_弹性物资标签_已选中",
+            "hits": ["AutoStockpileGotoElasticGoods"]
+        }
+    ]
+}

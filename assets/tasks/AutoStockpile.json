@@ -1,0 +1,228 @@
+{
+    "task": [
+        {
+            "name": "AutoStockpile",
+            "label": "$task.AutoStockpile.label",
+            "entry": "AutoStockpileMain",
+            "description": "$task.AutoStockpile.description",
+            "option": [
+                "AutoStockpileStrategy",
+                "AutoStockpileOverflowBuyLowPriceGoods",
+                "AutoStockpileBuyAllGoodsOnSunday",
+                "AutoStockpileValleyIV",
+                "AutoStockpileWuling"
+            ]
+        },
+        {
+            "name": "AutoStockpileTest",
+            "label": "$task.AutoStockpile.label",
+            "entry": "ASDO",
+            "description": "$task.AutoStockpile.description"
+        }
+    ],
+    "option": {
+        "AutoStockpileStrategy": {
+            "type": "select",
+            "label": "购买策略",
+            "description": "选择自动囤货的购买策略。由于当前仅添加配置空壳，官方 ProjectInterface 协议不支持同组输入框随策略切换为只读，因此仅在“自定义”策略下展开可编辑的价格阈值。",
+            "default_case": "Recommend",
+            "cases": [
+                {
+                    "name": "Recommend",
+                    "label": "推荐",
+                    "description": "兼顾收益与效率\n\n- 谷地适中：1000\n- 谷地较大：1400\n- 谷地极大：1700\n- 武陵适中：1700",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "strategy": "Recommend",
+                                "fallback_threshold": 1000,
+                                "price_limits": {
+                                    "valley_iv_tier1": 1000,
+                                    "valley_iv_tier2": 1400,
+                                    "valley_iv_tier3": 1700,
+                                    "wuling_tier1": 1700
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Strict",
+                    "label": "严格",
+                    "description": "最大化收益\n\n- 谷地适中：800\n- 谷地较大：1200\n- 谷地极大：1500\n- 武陵适中：1500",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "strategy": "Strict",
+                                "fallback_threshold": 1000,
+                                "price_limits": {
+                                    "valley_iv_tier1": 800,
+                                    "valley_iv_tier2": 1200,
+                                    "valley_iv_tier3": 1500,
+                                    "wuling_tier1": 1500
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Custom",
+                    "label": "自定义",
+                    "description": "自定义购入价格",
+                    "option": [
+                        "AutoStockpilePriceLimits"
+                    ],
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "strategy": "Custom",
+                                "fallback_threshold": 1000,
+                                "price_limits": {
+                                    "valley_iv_tier1": "{ValleyIVTier1PriceLimit}",
+                                    "valley_iv_tier2": "{ValleyIVTier2PriceLimit}",
+                                    "valley_iv_tier3": "{ValleyIVTier3PriceLimit}",
+                                    "wuling_tier1": "{WulingTier1PriceLimit}"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "AutoStockpilePriceLimits": {
+            "type": "input",
+            "label": "具体购买价格阈值",
+            "description": "仅在“自定义”策略下显示，用于手动填写各购买目标的价格阈值。",
+            "inputs": [
+                {
+                    "name": "ValleyIVTier1PriceLimit",
+                    "label": "谷地适中",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1000"
+                },
+                {
+                    "name": "ValleyIVTier2PriceLimit",
+                    "label": "谷地较大",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1400"
+                },
+                {
+                    "name": "ValleyIVTier3PriceLimit",
+                    "label": "谷地极大",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1700"
+                },
+                {
+                    "name": "WulingTier1PriceLimit",
+                    "label": "武陵适中",
+                    "pipeline_type": "int",
+                    "verify": "^\\d+$",
+                    "default": "1700"
+                }
+            ]
+        },
+        "AutoStockpileOverflowBuyLowPriceGoods": {
+            "type": "switch",
+            "label": "溢出时购买低价商品",
+            "default_case": "No",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "overflow_mode": true
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "No",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "overflow_mode": false
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "AutoStockpileBuyAllGoodsOnSunday": {
+            "type": "switch",
+            "label": "是否在周日购买全部商品",
+            "default_case": "No",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "sunday_mode": true
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "No",
+                    "pipeline_override": {
+                        "AutoStockpileOCRDecision": {
+                            "attach": {
+                                "sunday_mode": false
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "AutoStockpileValleyIV": {
+            "type": "switch",
+            "label": "$global.region.ValleyIV",
+            "default_case": "Yes",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "AutoStockpileValleyIV": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "name": "No",
+                    "pipeline_override": {
+                        "AutoStockpileValleyIV": {
+                            "enabled": false
+                        }
+                    }
+                }
+            ]
+        },
+        "AutoStockpileWuling": {
+            "type": "switch",
+            "label": "$global.region.Wuling",
+            "default_case": "Yes",
+            "cases": [
+                {
+                    "name": "Yes",
+                    "pipeline_override": {
+                        "AutoStockpileWuling": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "name": "No",
+                    "pipeline_override": {
+                        "AutoStockpileWuling": {
+                            "enabled": false
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

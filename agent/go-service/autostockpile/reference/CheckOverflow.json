@@ -1,0 +1,44 @@
+{
+    "name": "ReferenceAutoStockpileCheckOverflow",
+    "algorithm": "ColorMatch",
+    "hit": true,
+    "box": [
+        253,
+        142,
+        202,
+        14
+    ],
+    "detail": {
+        "all": [
+            {
+                "box": [
+                    253,
+                    142,
+                    202,
+                    14
+                ],
+                "count": 1419
+            }
+        ],
+        "best": {
+            "box": [
+                253,
+                142,
+                202,
+                14
+            ],
+            "count": 1419
+        },
+        "filtered": [
+            {
+                "box": [
+                    253,
+                    142,
+                    202,
+                    14
+                ],
+                "count": 1419
+            }
+        ]
+    }
+}

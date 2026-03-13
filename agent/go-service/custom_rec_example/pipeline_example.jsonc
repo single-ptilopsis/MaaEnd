@@ -1,0 +1,8 @@
+{
+    "CustomRecExampleNode": {
+        "desc": "示例：在同一张截图中多次执行 TemplateMatch 与 OCR",
+        "recognition": "Custom",
+        "custom_recognition": "CustomRecExampleMultiRecognition",
+        "next": [],
+    },
+}

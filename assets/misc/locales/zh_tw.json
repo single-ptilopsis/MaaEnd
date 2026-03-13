@@ -153,6 +153,8 @@
     "option.DailyProtocolPassRewards.label": "通行證獎勵",
     "task.AutoResell.label": "💰半自動倒賣",
     "task.AutoResell.description": "自動倒賣彈性需求物資，自行識別最高利潤貨物。可選擇自動購買並進入好友飛船售賣，或僅提供購買建議。",
+    "task.AutoStockpile.label": "📦自動囤貨",
+    "task.AutoStockpile.description": "自動進入地區建設選單，下滑並以 OCR 識別囤貨相關內容。目前僅提供任務框架與 Go 端 OCR 接收。",
     "option.AutoBuyAndSell.label": "自動購買/出售",
     "option.AutoBuyAndSell.description": "開啟後會自動購買並售賣；關閉後僅識別價格並提供購買建議，不會實際購買和售賣。注意：自動購買/出售功能僅在「電腦端-前台」連接配置下可用。",
     "option.AutoChangeRegion.label": "自動地區切換",

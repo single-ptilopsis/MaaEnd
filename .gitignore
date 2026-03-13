@@ -477,3 +477,6 @@ venv/
 .cache/
 
 tests/MaaEndTesting
+
+# oh-my-opencode
+.sisyphus/
