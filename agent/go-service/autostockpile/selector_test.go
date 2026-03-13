@@ -2,232 +2,163 @@ package autostockpile
 
 import (
 	"testing"
-	"time"
 )
 
-func TestParseSelectionConfigFromNodeJSON(t *testing.T) {
-	raw := `{"attach":{"strategy":"Strict","overflow_mode":true,"sunday_mode":false,"fallback_threshold":1200,"price_limits":{"valley_iv_tier1":800,"valley_iv_tier2":1200,"valley_iv_tier3":1500,"wuling_tier1":1500}}}`
-
-	cfg, err := parseSelectionConfigFromNodeJSON(raw)
-	if err != nil {
-		t.Fatalf("expected parse success, got error: %v", err)
-	}
-
-	if cfg.Strategy != "Strict" || !cfg.OverflowMode || cfg.SundayMode {
-		t.Fatalf("unexpected base config: %+v", cfg)
-	}
-	if cfg.FallbackThreshold != 1200 {
-		t.Fatalf("unexpected fallback threshold: got %d", cfg.FallbackThreshold)
-	}
-	if cfg.PriceLimits.ValleyIVTier1 != 800 || cfg.PriceLimits.WulingTier1 != 1500 {
-		t.Fatalf("unexpected price limits: %+v", cfg.PriceLimits)
-	}
-}
-
-func TestParseSelectionConfigFromNodeJSONUsesDefaultFallback(t *testing.T) {
-	raw := `{"attach":{"strategy":"Recommend"}}`
-
-	cfg, err := parseSelectionConfigFromNodeJSON(raw)
-	if err != nil {
-		t.Fatalf("expected parse success, got error: %v", err)
-	}
-
-	if cfg.FallbackThreshold != defaultFallbackBuyThreshold {
-		t.Fatalf("expected default fallback threshold %d, got %d", defaultFallbackBuyThreshold, cfg.FallbackThreshold)
-	}
-}
-
-func TestNormalModeSelection(t *testing.T) {
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "950", 100, 200),
-			newCandidateRegion("谷地水培肉货组", "1500", 100, 260),
-			newCandidateRegion("源石树幼苗货组", "1600", 100, 320),
-		},
-	}
-
-	result := SelectBestProduct(parsed, testSelectionConfig())
-	if !result.Selected {
-		t.Fatalf("expected selected=true, got false, reason=%q", result.Reason)
-	}
-	if result.ProductName != "源石树幼苗货组" {
-		t.Fatalf("unexpected product: got %q", result.ProductName)
-	}
-	if result.Threshold != 1700 || result.CurrentPrice != 1600 || result.Score != 100 {
-		t.Fatalf("unexpected score fields: threshold=%d price=%d score=%d", result.Threshold, result.CurrentPrice, result.Score)
-	}
-	if result.ClickX != 160 || result.ClickY != 332 {
-		t.Fatalf("unexpected click center: got (%d,%d)", result.ClickX, result.ClickY)
-	}
-}
-
-func TestOverflowModeSelection(t *testing.T) {
-	cfg := testSelectionConfig()
-	cfg.OverflowMode = true
-
-	parsed := &OCRParseResult{
-		OverflowMarkerTokens: []OCRToken{{Text: "9小时后+50即将溢出", X: 30, Y: 120, W: 100, H: 20}},
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "1100", 80, 180),
-			newCandidateRegion("谷地水培肉货组", "国1500", 90, 240),
-			newCandidateRegion("源石树幼苗货组", "1900", 100, 300),
-		},
-	}
-
-	result := SelectBestProduct(parsed, cfg)
-	if !result.Selected {
-		t.Fatalf("expected selected=true, got false, reason=%q", result.Reason)
-	}
-	if result.ProductName != "天使罐头货组" {
-		t.Fatalf("expected least-negative score candidate, got %q", result.ProductName)
-	}
-	if result.Score != -100 {
-		t.Fatalf("unexpected score: got %d, want -100", result.Score)
-	}
-}
-
-func TestSundayModeSelection(t *testing.T) {
-	cfg := testSelectionConfig()
-	cfg.SundayMode = true
-
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "1200", 100, 210),
-			newCandidateRegion("谷地水培肉货组", "1300", 100, 270),
-			newCandidateRegion("源石树幼苗货组", "1650", 100, 330),
-		},
-	}
-
-	result := selectBestProductAt(parsed, cfg, time.Date(2026, time.March, 8, 12, 0, 0, 0, time.UTC))
-	if !result.Selected {
-		t.Fatalf("expected selected=true, got false, reason=%q", result.Reason)
-	}
-	if result.ProductName != "谷地水培肉货组" {
-		t.Fatalf("expected highest score candidate, got %q", result.ProductName)
-	}
-	if result.Score != 100 {
-		t.Fatalf("unexpected score: got %d, want 100", result.Score)
-	}
-}
-
-func TestNoQualifyingProduct(t *testing.T) {
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "1000", 100, 220),
-			newCandidateRegion("谷地水培肉货组", "1700", 100, 280),
-		},
-	}
-
-	result := SelectBestProduct(parsed, testSelectionConfig())
-	if result.Selected {
-		t.Fatalf("expected selected=false, got true with %q", result.ProductName)
-	}
-	if result.Reason != "no_qualifying_products" {
-		t.Fatalf("unexpected reason: got %q", result.Reason)
-	}
-}
-
-func TestSelectWithNilParsedResult(t *testing.T) {
-	result := SelectBestProduct(nil, testSelectionConfig())
-	if result.Selected {
-		t.Fatalf("expected selected=false for nil parsed result, got true")
-	}
-	if result.Reason != "no_qualifying_products" {
-		t.Fatalf("expected reason=no_qualifying_products, got %q", result.Reason)
-	}
-}
-
-func TestSelectWithAllMissingPrices(t *testing.T) {
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			{
-				Bounds: [4]int{100, 200, 350, 30},
-				Tokens: []OCRToken{
-					{Text: "天使罐头货组", X: 100, Y: 200, W: 120, H: 24},
-					{Text: "无法解析的价格", X: 270, Y: 201, W: 80, H: 22},
+// TestResolveTierThreshold tests tier threshold resolution logic
+func TestResolveTierThreshold(t *testing.T) {
+	testCases := []struct {
+		name              string
+		tierID            string
+		cfg               SelectionConfig
+		expectedThreshold int
+	}{
+		{
+			name:   "ValleyIVTier1 with configured limit",
+			tierID: "ValleyIVTier1",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1000,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 1000,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
 				},
 			},
-			{
-				Bounds: [4]int{100, 260, 350, 30},
-				Tokens: []OCRToken{
-					{Text: "谷地水培肉货组", X: 100, Y: 260, W: 120, H: 24},
-					{Text: "19.6%", X: 270, Y: 261, W: 70, H: 20},
+			expectedThreshold: 1000,
+		},
+		{
+			name:   "ValleyIVTier2 with configured limit",
+			tierID: "ValleyIVTier2",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1000,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 1000,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
 				},
 			},
+			expectedThreshold: 1400,
+		},
+		{
+			name:   "ValleyIVTier3 with configured limit",
+			tierID: "ValleyIVTier3",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1000,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 1000,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
+				},
+			},
+			expectedThreshold: 1700,
+		},
+		{
+			name:   "WulingTier1 with configured limit",
+			tierID: "WulingTier1",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1000,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 1000,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
+				},
+			},
+			expectedThreshold: 1700,
+		},
+		{
+			name:   "Unknown tier uses fallback",
+			tierID: "UnknownTier",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1200,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 1000,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
+				},
+			},
+			expectedThreshold: 1200,
+		},
+		{
+			name:   "ValleyIVTier1 with zero limit uses fallback",
+			tierID: "ValleyIVTier1",
+			cfg: SelectionConfig{
+				FallbackThreshold: 1500,
+				PriceLimits: PriceLimitConfig{
+					ValleyIVTier1: 0,
+					ValleyIVTier2: 1400,
+					ValleyIVTier3: 1700,
+					WulingTier1:   1700,
+				},
+			},
+			expectedThreshold: 1500,
+		},
+		{
+			name:   "Empty tier string uses fallback",
+			tierID: "",
+			cfg: SelectionConfig{
+				FallbackThreshold: 800,
+				PriceLimits:       PriceLimitConfig{},
+			},
+			expectedThreshold: 800,
 		},
 	}
 
-	result := SelectBestProduct(parsed, testSelectionConfig())
-	if result.Selected {
-		t.Fatalf("expected selected=false when all prices are missing, got true")
-	}
-	if result.Reason != "no_qualifying_products" {
-		t.Fatalf("expected reason=no_qualifying_products, got %q", result.Reason)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			threshold := resolveTierThreshold(tc.tierID, tc.cfg)
+			if threshold != tc.expectedThreshold {
+				t.Errorf("expected threshold=%d, got %d", tc.expectedThreshold, threshold)
+			}
+		})
 	}
 }
 
-func TestSelectOverflowModeWithoutMarkers(t *testing.T) {
-	cfg := testSelectionConfig()
-	cfg.OverflowMode = true
-
-	parsed := &OCRParseResult{
-		OverflowMarkerTokens: []OCRToken{},
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "1100", 100, 200),
+// TestResolveFallbackThreshold tests fallback threshold resolution logic
+func TestResolveFallbackThreshold(t *testing.T) {
+	testCases := []struct {
+		name              string
+		rawFallback       int
+		expectedThreshold int
+	}{
+		{
+			name:              "Positive fallback value",
+			rawFallback:       1200,
+			expectedThreshold: 1200,
+		},
+		{
+			name:              "Zero fallback uses default",
+			rawFallback:       0,
+			expectedThreshold: defaultFallbackBuyThreshold,
+		},
+		{
+			name:              "Negative fallback uses default",
+			rawFallback:       -100,
+			expectedThreshold: defaultFallbackBuyThreshold,
+		},
+		{
+			name:              "Very large fallback value",
+			rawFallback:       999999,
+			expectedThreshold: 999999,
 		},
 	}
 
-	result := SelectBestProduct(parsed, cfg)
-	if result.Selected {
-		t.Fatalf("expected selected=false when overflow mode enabled but no markers detected, got true")
-	}
-	if result.Reason != "no_qualifying_products" {
-		t.Fatalf("expected reason=no_qualifying_products, got %q", result.Reason)
-	}
-}
-
-func TestSelectSundayModeOnNonSunday(t *testing.T) {
-	cfg := testSelectionConfig()
-	cfg.SundayMode = true
-
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("天使罐头货组", "1100", 100, 200),
-		},
-	}
-
-	nonSundayTime := time.Date(2026, time.March, 10, 12, 0, 0, 0, time.UTC)
-	result := selectBestProductAt(parsed, cfg, nonSundayTime)
-	if result.Selected {
-		t.Fatalf("expected selected=false when sunday mode enabled but current day is not sunday, got true")
-	}
-	if result.Reason != "no_qualifying_products" {
-		t.Fatalf("expected reason=no_qualifying_products, got %q", result.Reason)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			threshold := resolveFallbackThreshold(tc.rawFallback)
+			if threshold != tc.expectedThreshold {
+				t.Errorf("expected threshold=%d, got %d", tc.expectedThreshold, threshold)
+			}
+		})
 	}
 }
 
-func TestSelectTiebreakerStability(t *testing.T) {
-	parsed := &OCRParseResult{
-		CandidateRegions: []OCRCandidateRegion{
-			newCandidateRegion("边角料积木货组", "1600", 200, 300),
-			newCandidateRegion("源石树幼苗货组", "1600", 100, 200),
-			newCandidateRegion("谷地水培肉货组", "1300", 150, 250),
-		},
-	}
-
-	result := SelectBestProduct(parsed, testSelectionConfig())
-	if !result.Selected {
-		t.Fatalf("expected selected=true, got false")
-	}
-	if result.ProductName != "源石树幼苗货组" {
-		t.Fatalf("expected tiebreaker to select smallest Y (200), then smallest X (100): got %q (x=%d, y=%d)",
-			result.ProductName, result.ClickX, result.ClickY)
-	}
-}
-
-func testSelectionConfig() SelectionConfig {
-	return SelectionConfig{
-		Strategy:          "Recommend",
+// TestSelectBestProduct_ScoreCalculation tests score = threshold - price logic
+func TestSelectBestProduct_ScoreCalculation(t *testing.T) {
+	cfg := SelectionConfig{
 		FallbackThreshold: 1000,
 		PriceLimits: PriceLimitConfig{
 			ValleyIVTier1: 1000,
@@ -236,14 +167,361 @@ func testSelectionConfig() SelectionConfig {
 			WulingTier1:   1700,
 		},
 	}
+
+	testCases := []struct {
+		name          string
+		result        RecognitionResult
+		allowAll      bool
+		expectedScore int
+		expectedName  string
+		shouldSelect  bool
+	}{
+		{
+			name: "Positive score: threshold 1700, price 1600",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1600},
+				},
+			},
+			allowAll:      false,
+			expectedScore: 100,
+			expectedName:  "源石树幼苗货组.Tier3.png",
+			shouldSelect:  true,
+		},
+		{
+			name: "Zero score: threshold 1000, price 1000",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1000},
+				},
+			},
+			allowAll:     false,
+			shouldSelect: false,
+		},
+		{
+			name: "Negative score: threshold 1000, price 1100",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1100},
+				},
+			},
+			allowAll:     false,
+			shouldSelect: false,
+		},
+		{
+			name: "Large positive score: threshold 1700, price 1200",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "边角料积木货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1200},
+				},
+			},
+			allowAll:      false,
+			expectedScore: 500,
+			expectedName:  "边角料积木货组.Tier3.png",
+			shouldSelect:  true,
+		},
+		{
+			name: "AllowAll mode: negative score accepted",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1100},
+				},
+			},
+			allowAll:      true,
+			expectedScore: -100,
+			expectedName:  "天使罐头货组.Tier1.png",
+			shouldSelect:  true,
+		},
+		{
+			name: "Multiple goods: select highest score",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 950},
+					{Name: "谷地水培肉货组.Tier2.png", Tier: "ValleyIVTier2", Price: 1300},
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1500},
+				},
+			},
+			allowAll:      false,
+			expectedScore: 200,
+			expectedName:  "源石树幼苗货组.Tier3.png",
+			shouldSelect:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			selection := SelectBestProduct(tc.result, cfg, tc.allowAll)
+			if selection.Selected != tc.shouldSelect {
+				t.Errorf("expected selected=%v, got %v", tc.shouldSelect, selection.Selected)
+			}
+			if tc.shouldSelect {
+				if selection.Score != tc.expectedScore {
+					t.Errorf("expected score=%d, got %d", tc.expectedScore, selection.Score)
+				}
+				if selection.ProductName != tc.expectedName {
+					t.Errorf("expected name=%q, got %q", tc.expectedName, selection.ProductName)
+				}
+			}
+		})
+	}
 }
 
-func newCandidateRegion(name, price string, x, y int) OCRCandidateRegion {
-	nameToken := OCRToken{Text: name, X: x, Y: y, W: 120, H: 24}
-	priceToken := OCRToken{Text: price, X: x + 170, Y: y + 1, W: 80, H: 22}
-	percentToken := OCRToken{Text: "19.6%", X: x + 270, Y: y + 1, W: 70, H: 20}
-	return OCRCandidateRegion{
-		Bounds: [4]int{x, y, 350, 30},
-		Tokens: []OCRToken{nameToken, priceToken, percentToken},
+// TestSelectBestProduct_EmptyGoods tests behavior with empty goods list
+func TestSelectBestProduct_EmptyGoods(t *testing.T) {
+	cfg := SelectionConfig{
+		FallbackThreshold: 1000,
+		PriceLimits: PriceLimitConfig{
+			ValleyIVTier1: 1000,
+		},
+	}
+
+	testCases := []struct {
+		name           string
+		result         RecognitionResult
+		allowAll       bool
+		expectedReason string
+	}{
+		{
+			name: "Empty goods list",
+			result: RecognitionResult{
+				Goods: []GoodsItem{},
+			},
+			allowAll:       false,
+			expectedReason: "no_goods",
+		},
+		{
+			name: "Nil goods (zero value)",
+			result: RecognitionResult{
+				Goods: nil,
+			},
+			allowAll:       false,
+			expectedReason: "no_goods",
+		},
+		{
+			name: "Empty goods list with allowAll",
+			result: RecognitionResult{
+				Goods: []GoodsItem{},
+			},
+			allowAll:       true,
+			expectedReason: "no_goods",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			selection := SelectBestProduct(tc.result, cfg, tc.allowAll)
+			if selection.Selected {
+				t.Errorf("expected selected=false, got true")
+			}
+			if selection.Reason != tc.expectedReason {
+				t.Errorf("expected reason=%q, got %q", tc.expectedReason, selection.Reason)
+			}
+		})
+	}
+}
+
+// TestSelectBestProduct_AllNegativeScores tests all goods have score ≤ 0
+func TestSelectBestProduct_AllNegativeScores(t *testing.T) {
+	cfg := SelectionConfig{
+		FallbackThreshold: 1000,
+		PriceLimits: PriceLimitConfig{
+			ValleyIVTier1: 1000,
+			ValleyIVTier2: 1400,
+			ValleyIVTier3: 1700,
+		},
+	}
+
+	testCases := []struct {
+		name           string
+		result         RecognitionResult
+		allowAll       bool
+		expectedReason string
+		shouldSelect   bool
+	}{
+		{
+			name: "All negative scores, allowAll=false",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1100},
+					{Name: "谷地水培肉货组.Tier2.png", Tier: "ValleyIVTier2", Price: 1500},
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1800},
+				},
+			},
+			allowAll:       false,
+			expectedReason: "no_qualifying_products",
+			shouldSelect:   false,
+		},
+		{
+			name: "All zero scores, allowAll=false",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1000},
+					{Name: "谷地水培肉货组.Tier2.png", Tier: "ValleyIVTier2", Price: 1400},
+				},
+			},
+			allowAll:       false,
+			expectedReason: "no_qualifying_products",
+			shouldSelect:   false,
+		},
+		{
+			name: "All negative scores, allowAll=true selects least negative",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "天使罐头货组.Tier1.png", Tier: "ValleyIVTier1", Price: 1100},
+					{Name: "谷地水培肉货组.Tier2.png", Tier: "ValleyIVTier2", Price: 1450},
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1800},
+				},
+			},
+			allowAll:     true,
+			shouldSelect: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			selection := SelectBestProduct(tc.result, cfg, tc.allowAll)
+			if selection.Selected != tc.shouldSelect {
+				t.Errorf("expected selected=%v, got %v", tc.shouldSelect, selection.Selected)
+			}
+			if !tc.shouldSelect && selection.Reason != tc.expectedReason {
+				t.Errorf("expected reason=%q, got %q", tc.expectedReason, selection.Reason)
+			}
+			if tc.shouldSelect && tc.allowAll {
+				if selection.ProductName != "谷地水培肉货组.Tier2.png" {
+					t.Errorf("expected least negative score (closest to 0), got %q", selection.ProductName)
+				}
+				if selection.Score != -50 {
+					t.Errorf("expected score=-50 (least negative), got %d", selection.Score)
+				}
+			}
+		})
+	}
+}
+
+// TestSelectBestProduct_SortingStability tests tiebreaker logic
+func TestSelectBestProduct_SortingStability(t *testing.T) {
+	cfg := SelectionConfig{
+		FallbackThreshold: 1000,
+		PriceLimits: PriceLimitConfig{
+			ValleyIVTier1: 1000,
+			ValleyIVTier2: 1400,
+			ValleyIVTier3: 1700,
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		result       RecognitionResult
+		expectedName string
+		reason       string
+	}{
+		{
+			name: "Same score, different prices: prefer lower price",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "边角料积木货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1600},
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1500},
+				},
+			},
+			expectedName: "源石树幼苗货组.Tier3.png",
+			reason:       "Same score (100), lower price (1500 < 1600) wins",
+		},
+		{
+			name: "Same score and price, different tiers: prefer lower tier string",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "边角料积木货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1600},
+					{Name: "武侠电影货组.Tier1.png", Tier: "WulingTier1", Price: 1600},
+				},
+			},
+			expectedName: "边角料积木货组.Tier3.png",
+			reason:       "Same score (100) and price (1600), tier 'ValleyIVTier3' < 'WulingTier1' lexically",
+		},
+		{
+			name: "Same score, price, tier: stable sort preserves order",
+			result: RecognitionResult{
+				Goods: []GoodsItem{
+					{Name: "源石树幼苗货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1600},
+					{Name: "边角料积木货组.Tier3.png", Tier: "ValleyIVTier3", Price: 1600},
+				},
+			},
+			expectedName: "源石树幼苗货组.Tier3.png",
+			reason:       "Same score, price, tier; stable sort preserves input order (first wins)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			selection := SelectBestProduct(tc.result, cfg, false)
+			if !selection.Selected {
+				t.Fatalf("expected selected=true, got false")
+			}
+			if selection.ProductName != tc.expectedName {
+				t.Errorf("%s\nexpected name=%q, got %q", tc.reason, tc.expectedName, selection.ProductName)
+			}
+		})
+	}
+}
+
+// TestParseSelectionConfigFromNodeJSON tests config parsing
+func TestParseSelectionConfigFromNodeJSON(t *testing.T) {
+	testCases := []struct {
+		name        string
+		rawJSON     string
+		expectError bool
+		validate    func(*testing.T, SelectionConfig)
+	}{
+		{
+			name:        "Complete config",
+			rawJSON:     `{"attach":{"strategy":"Strict","overflow_mode":true,"sunday_mode":false,"fallback_threshold":1200,"price_limits":{"valley_iv_tier1":800,"valley_iv_tier2":1200,"valley_iv_tier3":1500,"wuling_tier1":1500}}}`,
+			expectError: false,
+			validate: func(t *testing.T, cfg SelectionConfig) {
+				if cfg.Strategy != "Strict" || !cfg.OverflowMode || cfg.SundayMode {
+					t.Errorf("unexpected base config: %+v", cfg)
+				}
+				if cfg.FallbackThreshold != 1200 {
+					t.Errorf("unexpected fallback threshold: got %d", cfg.FallbackThreshold)
+				}
+				if cfg.PriceLimits.ValleyIVTier1 != 800 || cfg.PriceLimits.WulingTier1 != 1500 {
+					t.Errorf("unexpected price limits: %+v", cfg.PriceLimits)
+				}
+			},
+		},
+		{
+			name:        "Minimal config with defaults",
+			rawJSON:     `{"attach":{"strategy":"Recommend"}}`,
+			expectError: false,
+			validate: func(t *testing.T, cfg SelectionConfig) {
+				if cfg.FallbackThreshold != defaultFallbackBuyThreshold {
+					t.Errorf("expected default fallback threshold %d, got %d", defaultFallbackBuyThreshold, cfg.FallbackThreshold)
+				}
+				if cfg.Strategy != "Recommend" {
+					t.Errorf("expected strategy=Recommend, got %s", cfg.Strategy)
+				}
+			},
+		},
+		{
+			name:        "Invalid JSON",
+			rawJSON:     `{invalid json}`,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := parseSelectionConfigFromNodeJSON(tc.rawJSON)
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if tc.validate != nil {
+					tc.validate(t, cfg)
+				}
+			}
+		})
 	}
 }

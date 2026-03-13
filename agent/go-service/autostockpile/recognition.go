@@ -1,0 +1,559 @@
+package autostockpile
+
+import (
+	"encoding/json"
+	"fmt"
+	"image"
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
+	"github.com/rs/zerolog/log"
+)
+
+const (
+	autoStockpileComponent = "autostockpile"
+	anchorTargetRegionName = "AutoStockpileGotoTargetReigon"
+
+	overflowNodeName       = "AutoStockpileCheckOverflow"
+	overflowDetailNodeName = "AutoStockpileGetOverflowDetail"
+	locateGoodsNodeName    = "AutoStockpileLocateGoods"
+	goodsPriceNodeName     = "AutoStockpileGetGoodsPrice"
+)
+
+var (
+	overflowCurrentMaxRe = regexp.MustCompile(`(\d+)\s*/\s*(\d+)`)
+	overflowPlusRe       = regexp.MustCompile(`\+(\d+)`)
+	priceRe              = regexp.MustCompile(`\d{3,4}`)
+)
+
+type goodsCandidate struct {
+	item GoodsItem
+	box  maa.Rect
+}
+
+type priceCandidate struct {
+	value int
+	text  string
+	box   maa.Rect
+}
+
+type goodsTemplate struct {
+	name         string
+	tier         string
+	templatePath string
+}
+
+// Run executes AutoStockpile custom recognition and returns structured item/price JSON detail.
+func (r *ItemValueChangeRecognition) Run(ctx *maa.Context, arg *maa.CustomRecognitionArg) (*maa.CustomRecognitionResult, bool) {
+	if arg == nil || arg.Img == nil {
+		log.Error().
+			Str("component", autoStockpileComponent).
+			Msg("custom recognition arg or image is nil")
+		return nil, false
+	}
+
+	overflowDetected, err := runOverflowColorMatch(ctx, arg.Img)
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Str("step", "overflow_color_match").
+			Msg("failed to run overflow color match")
+	}
+
+	if overflowDetected {
+		if cur, max, plus, ok := runOverflowDetailOCR(ctx, arg.Img); ok {
+			log.Info().
+				Str("component", autoStockpileComponent).
+				Int("overflow_current", cur).
+				Int("overflow_max", max).
+				Int("overflow_plus", plus).
+				Msg("overflow detail parsed")
+		}
+	}
+
+	region, anchor := resolveGoodsRegion(ctx)
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Str("anchor", anchor).
+		Str("region", region).
+		Msg("goods region resolved")
+
+	templates, goodsDir, err := listGoodsTemplates(region)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Str("region", region).
+			Msg("failed to read goods templates")
+		return nil, false
+	}
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Str("region", region).
+		Str("goods_dir", goodsDir).
+		Int("template_count", len(templates)).
+		Msg("goods templates loaded")
+
+	goods := make([]goodsCandidate, 0, len(templates))
+	for _, tpl := range templates {
+		detail, recErr := runGoodsTemplateMatch(ctx, arg.Img, tpl.templatePath)
+		if recErr != nil {
+			log.Warn().
+				Err(recErr).
+				Str("component", autoStockpileComponent).
+				Str("template", tpl.templatePath).
+				Msg("template match failed")
+			continue
+		}
+
+		box, hit := pickLowestTemplateHit(detail)
+		if !hit {
+			continue
+		}
+
+		goods = append(goods, goodsCandidate{
+			item: GoodsItem{
+				Name:  tpl.templatePath,
+				Tier:  tpl.tier,
+				Price: 0,
+			},
+			box: box,
+		})
+	}
+
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Int("template_hits", len(goods)).
+		Msg("template matching finished")
+
+	prices := runGoodsPriceOCR(ctx, arg.Img)
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Int("price_count", len(prices)).
+		Msg("price ocr finished")
+
+	sort.Slice(goods, func(i, j int) bool {
+		if goods[i].box.Y() == goods[j].box.Y() {
+			return goods[i].box.X() < goods[j].box.X()
+		}
+		return goods[i].box.Y() < goods[j].box.Y()
+	})
+
+	resultGoods := make([]GoodsItem, 0, len(goods))
+	usedPrice := make([]bool, len(prices))
+	bindingSuccess := 0
+	bindingFailed := 0
+
+	for _, g := range goods {
+		boundPrice, ok := bindPriceToGoods(g, prices, usedPrice)
+		item := g.item
+		if ok {
+			item.Price = boundPrice
+			bindingSuccess++
+		} else {
+			bindingFailed++
+			log.Warn().
+				Str("component", autoStockpileComponent).
+				Str("goods_name", g.item.Name).
+				Str("tier", g.item.Tier).
+				Int("goods_x", g.box.X()).
+				Int("goods_y", g.box.Y()).
+				Msg("failed to bind price for goods")
+		}
+		resultGoods = append(resultGoods, item)
+	}
+
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Int("bind_success", bindingSuccess).
+		Int("bind_failed", bindingFailed).
+		Msg("goods-price binding finished")
+
+	resultPayload := RecognitionResult{
+		Overflow: overflowDetected,
+		Sunday:   time.Now().Weekday() == time.Sunday,
+		Goods:    resultGoods,
+	}
+
+	resultDetail, err := json.Marshal(resultPayload)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Msg("failed to marshal recognition result")
+		return nil, false
+	}
+
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Bool("overflow", resultPayload.Overflow).
+		Bool("sunday", resultPayload.Sunday).
+		Int("goods_count", len(resultPayload.Goods)).
+		Msg("custom recognition finished")
+
+	return &maa.CustomRecognitionResult{
+		Box:    arg.Roi,
+		Detail: string(resultDetail),
+	}, len(resultGoods) > 0
+}
+
+func runOverflowColorMatch(ctx *maa.Context, img image.Image) (bool, error) {
+	config := map[string]any{
+		overflowNodeName: map[string]any{
+			"recognition": "ColorMatch",
+			"roi":         []int{43, 125, 641, 49},
+			"method":      40,
+			"lower":       [][]int{{23, 255, 255}},
+			"upper":       [][]int{{35, 255, 255}},
+			"count":       500,
+		},
+	}
+
+	detail, err := ctx.RunRecognition(overflowNodeName, img, config)
+	if err != nil {
+		return false, err
+	}
+
+	hit := detail != nil && detail.Hit
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Bool("overflow_hit", hit).
+		Msg("overflow color match completed")
+	return hit, nil
+}
+
+func runOverflowDetailOCR(ctx *maa.Context, img image.Image) (current int, max int, plus int, ok bool) {
+	config := map[string]any{
+		overflowDetailNodeName: map[string]any{
+			"recognition": "OCR",
+			"roi":         []int{35, 125, 773, 47},
+			"expected":    []string{".*"},
+		},
+	}
+
+	detail, err := ctx.RunRecognition(overflowDetailNodeName, img, config)
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Str("step", "overflow_detail_ocr").
+			Msg("failed to run overflow detail ocr")
+		return 0, 0, 0, false
+	}
+
+	for _, text := range extractOCRTexts(detail) {
+		if current == 0 || max == 0 {
+			if match := overflowCurrentMaxRe.FindStringSubmatch(text); len(match) == 3 {
+				cur, curErr := strconv.Atoi(match[1])
+				maxValue, maxErr := strconv.Atoi(match[2])
+				if curErr == nil && maxErr == nil {
+					current = cur
+					max = maxValue
+				}
+			}
+		}
+		if plus == 0 {
+			if match := overflowPlusRe.FindStringSubmatch(text); len(match) == 2 {
+				plusValue, parseErr := strconv.Atoi(match[1])
+				if parseErr == nil {
+					plus = plusValue
+				}
+			}
+		}
+	}
+
+	return current, max, plus, current > 0 || max > 0 || plus > 0
+}
+
+func resolveGoodsRegion(ctx *maa.Context) (region string, anchor string) {
+	if ctx == nil {
+		return "Wuling", ""
+	}
+
+	anchor, err := ctx.GetAnchor(anchorTargetRegionName)
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Str("anchor_name", anchorTargetRegionName).
+			Msg("failed to get anchor, fallback to Wuling")
+		return "Wuling", ""
+	}
+
+	switch anchor {
+	case "GoToValleyIV":
+		return "ValleyIV", anchor
+	case "GoToWuling":
+		return "Wuling", anchor
+	default:
+		log.Warn().
+			Str("component", autoStockpileComponent).
+			Str("anchor", anchor).
+			Msg("unexpected anchor value, fallback to Wuling")
+		return "Wuling", anchor
+	}
+}
+
+func listGoodsTemplates(region string) ([]goodsTemplate, string, error) {
+	baseParts := []string{"assets", "resource_fast", "image", "AutoStockpile", "Goods", region}
+	pathCandidates := []string{
+		filepath.Join(baseParts...),
+		filepath.Join("..", "..", filepath.Join(baseParts...)),
+		filepath.Join("..", filepath.Join(baseParts...)),
+	}
+
+	var lastErr error
+	for _, goodsDir := range pathCandidates {
+		entries, err := os.ReadDir(goodsDir)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		templates := make([]goodsTemplate, 0, len(entries))
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(strings.ToLower(entry.Name()), ".png") {
+				continue
+			}
+
+			name, tier, ok := parseGoodsFileName(entry.Name(), region)
+			if !ok {
+				log.Warn().
+					Str("component", autoStockpileComponent).
+					Str("filename", entry.Name()).
+					Msg("invalid goods filename format, skip")
+				continue
+			}
+
+			templates = append(templates, goodsTemplate{
+				name:         name,
+				tier:         tier,
+				templatePath: filepath.ToSlash(filepath.Join("AutoStockpile", "Goods", region, entry.Name())),
+			})
+		}
+
+		sort.Slice(templates, func(i, j int) bool {
+			return templates[i].templatePath < templates[j].templatePath
+		})
+
+		return templates, goodsDir, nil
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no valid goods directory found for region %s", region)
+	}
+	return nil, "", lastErr
+}
+
+func parseGoodsFileName(filename, region string) (name string, tier string, ok bool) {
+	parts := strings.Split(filename, ".")
+	if len(parts) < 3 {
+		return "", "", false
+	}
+
+	name = parts[0]
+	tierPart := parts[1]
+	tierLevel := strings.TrimPrefix(tierPart, "Tier")
+	if tierLevel == "" || tierLevel == tierPart {
+		return "", "", false
+	}
+
+	if _, err := strconv.Atoi(tierLevel); err != nil {
+		return "", "", false
+	}
+
+	tier = region + "Tier" + tierLevel
+	return name, tier, true
+}
+
+func runGoodsTemplateMatch(ctx *maa.Context, img image.Image, templatePath string) (*maa.RecognitionDetail, error) {
+	config := map[string]any{
+		locateGoodsNodeName: map[string]any{
+			"recognition": "TemplateMatch",
+			"template":    templatePath,
+			"threshold":   0.8,
+			"roi":         []int{63, 162, 1177, 553},
+		},
+	}
+
+	return ctx.RunRecognition(locateGoodsNodeName, img, config)
+}
+
+func pickLowestTemplateHit(detail *maa.RecognitionDetail) (maa.Rect, bool) {
+	results := recognitionResults(detail)
+	if len(results) == 0 {
+		return maa.Rect{}, false
+	}
+
+	hit := false
+	var selected maa.Rect
+	for _, result := range results {
+		tm, ok := result.AsTemplateMatch()
+		if !ok {
+			continue
+		}
+
+		if !hit || tm.Box.Y() > selected.Y() {
+			selected = tm.Box
+			hit = true
+		}
+	}
+
+	return selected, hit
+}
+
+func runGoodsPriceOCR(ctx *maa.Context, img image.Image) []priceCandidate {
+	config := map[string]any{
+		goodsPriceNodeName: map[string]any{
+			"recognition": "OCR",
+			"expected":    []string{"\\d{3,4}"},
+			"roi":         []int{63, 162, 1177, 553},
+		},
+	}
+
+	detail, err := ctx.RunRecognition(goodsPriceNodeName, img, config)
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("component", autoStockpileComponent).
+			Str("step", "goods_price_ocr").
+			Msg("failed to run goods price ocr")
+		return nil
+	}
+
+	results := recognitionResults(detail)
+	if len(results) == 0 {
+		return nil
+	}
+
+	prices := make([]priceCandidate, 0, len(results))
+	seen := make(map[string]struct{}, len(results))
+	for _, result := range results {
+		ocrResult, ok := result.AsOCR()
+		if !ok {
+			continue
+		}
+
+		text := strings.TrimSpace(ocrResult.Text)
+		match := priceRe.FindString(text)
+		if match == "" {
+			continue
+		}
+
+		price, parseErr := strconv.Atoi(match)
+		if parseErr != nil {
+			continue
+		}
+
+		key := fmt.Sprintf("%d:%d:%d:%d:%s", ocrResult.Box.X(), ocrResult.Box.Y(), ocrResult.Box.Width(), ocrResult.Box.Height(), match)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		prices = append(prices, priceCandidate{
+			value: price,
+			text:  match,
+			box:   ocrResult.Box,
+		})
+	}
+
+	sort.Slice(prices, func(i, j int) bool {
+		if prices[i].box.Y() == prices[j].box.Y() {
+			return prices[i].box.X() < prices[j].box.X()
+		}
+		return prices[i].box.Y() < prices[j].box.Y()
+	})
+
+	return prices
+}
+
+func bindPriceToGoods(goods goodsCandidate, prices []priceCandidate, used []bool) (int, bool) {
+	bestIdx := -1
+	bestDistance := 0
+	goodsBottomY := goods.box.Y() + goods.box.Height()
+
+	for i, price := range prices {
+		if i < len(used) && used[i] {
+			continue
+		}
+		if price.box.Y() <= goods.box.Y() {
+			continue
+		}
+
+		distance := absInt(goodsBottomY - price.box.Y())
+		if bestIdx < 0 || distance < bestDistance {
+			bestIdx = i
+			bestDistance = distance
+		}
+	}
+
+	if bestIdx < 0 {
+		return 0, false
+	}
+	if bestIdx < len(used) {
+		used[bestIdx] = true
+	}
+
+	log.Info().
+		Str("component", autoStockpileComponent).
+		Str("goods_name", goods.item.Name).
+		Str("tier", goods.item.Tier).
+		Int("price", prices[bestIdx].value).
+		Int("goods_bottom_y", goodsBottomY).
+		Int("price_y", prices[bestIdx].box.Y()).
+		Int("distance", bestDistance).
+		Msg("price bound to goods")
+
+	return prices[bestIdx].value, true
+}
+
+func extractOCRTexts(detail *maa.RecognitionDetail) []string {
+	results := recognitionResults(detail)
+	if len(results) == 0 {
+		return nil
+	}
+
+	texts := make([]string, 0, len(results))
+	seen := make(map[string]struct{}, len(results))
+	for _, result := range results {
+		ocrResult, ok := result.AsOCR()
+		if !ok {
+			continue
+		}
+		text := strings.TrimSpace(ocrResult.Text)
+		if text == "" {
+			continue
+		}
+		if _, exists := seen[text]; exists {
+			continue
+		}
+		seen[text] = struct{}{}
+		texts = append(texts, text)
+	}
+
+	return texts
+}
+
+func recognitionResults(detail *maa.RecognitionDetail) []*maa.RecognitionResult {
+	if detail == nil || detail.Results == nil {
+		return nil
+	}
+	if len(detail.Results.Filtered) > 0 {
+		return detail.Results.Filtered
+	}
+	if len(detail.Results.All) > 0 {
+		return detail.Results.All
+	}
+	if detail.Results.Best != nil {
+		return []*maa.RecognitionResult{detail.Results.Best}
+	}
+	return nil
+}

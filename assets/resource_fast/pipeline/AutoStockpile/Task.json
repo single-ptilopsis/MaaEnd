@@ -1,12 +1,15 @@
 {
     "AutoStockpileSelectedProductClickFailed": {"focus": {"Node.Recognition.Failed": "商品识别出错"}},
     "新建节点4": {"desc": "在这里处理没有解锁物资调度", "action": {"type": "Custom", "param": {}}},
-    "AutoStockpileFullScreenOCR": {
-        "recognition": {"type": "OCR", "param": {"expected": [".*"]}},
-        "next": ["AutoStockpileOCRDecision"]
-    },
-    "AutoStockpileOCRDecision": {
-        "desc": "基于OCR结果调用Go服务进行商品选择决策",
+    "AutoStockpileDecision": {
+        "desc": "统一识别与决策：CustomRecognition识别商品，CustomAction选择购买",
+        "recognition": {
+            "type": "Custom",
+            "param": {
+                "custom_recognition": "AutoStockpile.Recognition",
+                "custom_recognition_param": {}
+            }
+        },
         "action": {
             "type": "Custom",
             "param": {
@@ -114,5 +117,5 @@
                     71,
                     24,
                     16
-                ]}}, "next": ["AutoStockpileFullScreenOCR"]}
+                ]}}, "next": ["AutoStockpileDecision"]}
 }

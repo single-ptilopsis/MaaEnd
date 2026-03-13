@@ -10,61 +10,27 @@ var (
 	_ maa.CustomRecognitionRunner = &ItemValueChangeRecognition{}
 )
 
-// ItemValueChangeMap represents the tier mapping for items
-// Structure: locale -> item_name -> tier_id
-type ItemValueChangeMap struct {
-	ZhCn map[string]string `json:"zh_cn"`
-}
-
-// SelectItemAction handles item selection based on OCR results
+// SelectItemAction handles item selection based on recognition results
 type SelectItemAction struct{}
 
 // ItemValueChangeRecognition handles recognition of item value changes
 type ItemValueChangeRecognition struct{}
 
-// Run executes the item value change recognition
-func (r *ItemValueChangeRecognition) Run(ctx *maa.Context, arg *maa.CustomRecognitionArg) (*maa.CustomRecognitionResult, bool) {
-	return &maa.CustomRecognitionResult{}, true
+// RecognitionResult represents the output of item value change recognition
+type RecognitionResult struct {
+	Overflow bool        `json:"overflow"`
+	Sunday   bool        `json:"sunday"`
+	Goods    []GoodsItem `json:"Goods"`
 }
 
-// OCRToken 表示 OCR 识别出的最小文本单元。
-type OCRToken struct {
-	Text  string
-	X     int
-	Y     int
-	W     int
-	H     int
-	Score float64
+// GoodsItem represents a single recognized good from the recognition result
+type GoodsItem struct {
+	Name  string `json:"name"`  // Image template path
+	Tier  string `json:"tier"`  // e.g., "WulingTier1"
+	Price int    `json:"price"` // Current price of the good
 }
 
-// CenterX 返回 token 的中心 X 坐标。
-func (t OCRToken) CenterX() int {
-	return t.X + t.W/2
-}
-
-// CenterY 返回 token 的中心 Y 坐标。
-func (t OCRToken) CenterY() int {
-	return t.Y + t.H/2
-}
-
-// OCRCandidateRegion 表示一个候选商品区域（行列分组后）。
-type OCRCandidateRegion struct {
-	Row    int
-	Column int
-	Bounds [4]int
-	Tokens []OCRToken
-}
-
-// OCRParseResult 表示自动囤货页 OCR 解析结果。
-type OCRParseResult struct {
-	AllTokens               []OCRToken
-	ProductTokens           []OCRToken
-	CandidateRegions        []OCRCandidateRegion
-	OverflowMarkerTokens    []OCRToken
-	EffectiveProductDivider int
-}
-
-// SelectionResult 表示自动囤货商品选择结果。
+// SelectionResult represents the item selection decision result
 type SelectionResult struct {
 	Selected      bool
 	ProductName   string
@@ -72,12 +38,10 @@ type SelectionResult struct {
 	Threshold     int
 	CurrentPrice  int
 	Score         int
-	ClickX        int
-	ClickY        int
 	Reason        string
 }
 
-// SelectionConfig 表示 AutoStockpile 选择策略配置。
+// SelectionConfig represents the configuration for AutoStockpile selection strategy
 type SelectionConfig struct {
 	Strategy          string           `json:"strategy"`
 	OverflowMode      bool             `json:"overflow_mode"`
@@ -85,3 +49,57 @@ type SelectionConfig struct {
 	FallbackThreshold int              `json:"fallback_threshold"`
 	PriceLimits       PriceLimitConfig `json:"price_limits"`
 }
+
+// PriceLimitConfig represents the tier-based price thresholds for buying decisions
+type PriceLimitConfig struct {
+	ValleyIVTier1 int `json:"valley_iv_tier1"`
+	ValleyIVTier2 int `json:"valley_iv_tier2"`
+	ValleyIVTier3 int `json:"valley_iv_tier3"`
+	WulingTier1   int `json:"wuling_tier1"`
+}
+
+// ThresholdConfig represents the threshold configuration for item matching and pricing
+type ThresholdConfig struct {
+	FallbackThreshold int              `json:"fallback_threshold"`
+	PriceLimits       PriceLimitConfig `json:"price_limits"`
+}
+
+// ItemMatchResult represents the result of matching an OCR item name to a canonical item
+type ItemMatchResult struct {
+	OCRName       string
+	CanonicalName string
+	TierID        string
+	EditDistance  int
+	Threshold     int
+	Matched       bool
+}
+
+// Utility Functions
+
+// absInt returns the absolute value of an integer
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+// minInt returns the minimum of three integers
+func minInt(a, b, c int) int {
+	if a < b {
+		if a < c {
+			return a
+		}
+		return c
+	}
+	if b < c {
+		return b
+	}
+	return c
+}
+
+// Constants
+
+const (
+	defaultFallbackBuyThreshold = 1000
+)
