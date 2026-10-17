@@ -33,6 +33,7 @@
             "无待领取信用",
             "無待領取信用",
             "No credits to claim",
+            "FP受取済",
             "FP未獲得"
         ],
         "action": "DoNothing",
